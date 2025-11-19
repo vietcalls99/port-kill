@@ -50,7 +50,7 @@ echo regex = "1.0"
 echo sysinfo = "0.30"
 echo chrono = { version = "0.4", features = ["serde"] }
 echo walkdir = "2.5"
-echo reqwest = { version = "0.11", features = ["json"] }
+echo reqwest = { version = "0.11", features = ["json", "blocking"] }
 echo.
 echo # Windows-specific tray support
 echo tray-item = "0.10.0"
