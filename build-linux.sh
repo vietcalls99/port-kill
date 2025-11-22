@@ -16,8 +16,17 @@ echo "📦 Creating Linux-specific build configuration..."
 cat > Cargo.linux.tmp.toml << 'EOF'
 [package]
 name = "port-kill"
-version = "0.3.7"
+version = "0.5.27"
 edition = "2021"
+authors = ["Treadie <info@treadie.com>"]
+description = "A CLI tool to help you find and free ports blocking your dev work, plus manage development caches"
+license = "FSL-1.1-MIT"
+repository = "https://github.com/treadiehq/port-kill"
+build = "build.rs"
+
+[lib]
+name = "port_kill"
+path = "src/lib.rs"
 
 [[bin]]
 name = "port-kill"
@@ -28,12 +37,12 @@ name = "port-kill-console"
 path = "src/main_console.rs"
 
 [dependencies]
-# Core dependencies (platform-agnostic)
-nix = { version = "0.27", features = ["signal", "process", "fs"] }
+# Platform-agnostic dependencies (used by both GUI and console)
 crossbeam-channel = "0.5"
 tokio = { version = "1.0", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+serde_yaml = "0.9"
 anyhow = "1.0"
 thiserror = "1.0"
 log = "0.4"
@@ -42,12 +51,18 @@ clap = { version = "4.0", features = ["derive"] }
 regex = "1.0"
 sysinfo = "0.30"
 chrono = { version = "0.4", features = ["serde"] }
-walkdir = "2.5"
 reqwest = { version = "0.11", features = ["json", "blocking"] }
+walkdir = "2"
+
+# Unix-specific dependencies (for process management)
+nix = { version = "0.27", features = ["signal", "process", "fs"] }
 
 # Linux-specific tray support
 libappindicator = "0.7"
 gtk = "0.15"
+
+[build-dependencies]
+embed-resource = "1.8"
 
 [features]
 default = []
@@ -58,19 +73,22 @@ EOF
 echo "📦 Creating Linux-specific lib.rs..."
 
 cat > src/lib.linux.tmp.rs << 'EOF'
-pub mod console_app;
-pub mod process_monitor;
-pub mod types;
+pub mod cache;
 pub mod cli;
+pub mod console_app;
+pub mod endpoint_monitor;
+pub mod file_monitor;
+pub mod orchestrator;
+pub mod port_guard;
+pub mod preset_manager;
+pub mod process_monitor;
+pub mod restart_manager;
+pub mod scripting;
+pub mod security_audit;
+pub mod service_detector;
 pub mod smart_filter;
 pub mod system_monitor;
-pub mod port_guard;
-pub mod security_audit;
-pub mod endpoint_monitor;
-pub mod scripting;
-pub mod file_monitor;
-pub mod preset_manager;
-pub mod cache;
+pub mod types;
 pub mod update_check;
 
 // Exclude macOS-specific modules for Linux build

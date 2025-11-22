@@ -23,9 +23,17 @@ echo 📦 Creating Windows-specific build configuration...
 (
 echo [package]
 echo name = "port-kill"
-echo version = "0.3.7"
+echo version = "0.5.27"
 echo edition = "2021"
+echo authors = ["Treadie ^<info@treadie.com^>"]
+echo description = "A CLI tool to help you find and free ports blocking your dev work, plus manage development caches"
+echo license = "FSL-1.1-MIT"
+echo repository = "https://github.com/treadiehq/port-kill"
 echo build = "build.rs"
+echo.
+echo [lib]
+echo name = "port_kill"
+echo path = "src/lib.rs"
 echo.
 echo [[bin]]
 echo name = "port-kill"
@@ -36,11 +44,12 @@ echo name = "port-kill-console"
 echo path = "src/main_console.rs"
 echo.
 echo [dependencies]
-echo # Core dependencies ^(platform-agnostic^)
+echo # Platform-agnostic dependencies ^(used by both GUI and console^)
 echo crossbeam-channel = "0.5"
 echo tokio = { version = "1.0", features = ["full"] }
 echo serde = { version = "1.0", features = ["derive"] }
 echo serde_json = "1.0"
+echo serde_yaml = "0.9"
 echo anyhow = "1.0"
 echo thiserror = "1.0"
 echo log = "0.4"
@@ -49,8 +58,8 @@ echo clap = { version = "4.0", features = ["derive"] }
 echo regex = "1.0"
 echo sysinfo = "0.30"
 echo chrono = { version = "0.4", features = ["serde"] }
-echo walkdir = "2.5"
 echo reqwest = { version = "0.11", features = ["json", "blocking"] }
+echo walkdir = "2"
 echo.
 echo # Windows-specific tray support
 echo tray-item = "0.10.0"
@@ -72,11 +81,14 @@ echo pub mod cli;
 echo pub mod console_app;
 echo pub mod endpoint_monitor;
 echo pub mod file_monitor;
+echo pub mod orchestrator;
 echo pub mod port_guard;
 echo pub mod preset_manager;
 echo pub mod process_monitor;
+echo pub mod restart_manager;
 echo pub mod scripting;
 echo pub mod security_audit;
+echo pub mod service_detector;
 echo pub mod smart_filter;
 echo pub mod system_monitor;
 echo pub mod types;
