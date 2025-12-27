@@ -68,6 +68,8 @@ impl PortKillApp {
         let mut last_process_count = 0;
         let mut last_menu_update = std::time::Instant::now();
         let is_killing_processes = Arc::new(AtomicBool::new(false));
+        // Track when menu was last interacted with to avoid updating during interaction
+        let mut last_menu_interaction = std::time::Instant::now() - std::time::Duration::from_secs(10);
 
         // Give the tray icon time to appear
         info!("Waiting for tray icon to appear...");
@@ -88,6 +90,9 @@ impl PortKillApp {
             // Handle menu events with crash-safe approach
             if let Ok(event) = menu_event_receiver.try_recv() {
                 info!("Menu event received: {:?}", event);
+                
+                // Record menu interaction time to prevent updates while menu is being used
+                last_menu_interaction = std::time::Instant::now();
                 
                 // Only process if we're not already killing processes
                 if !is_killing_processes.load(Ordering::Relaxed) {
@@ -281,8 +286,10 @@ impl PortKillApp {
                         let process_count_changed = process_count != last_process_count;
                         let enough_time_passed = last_menu_update.elapsed() >= std::time::Duration::from_secs(10); // Increased delay
                         let not_killing = !is_killing_processes.load(Ordering::Relaxed);
+                        // Also check that we haven't had a menu interaction recently (prevents crash from issue #30)
+                        let no_recent_interaction = last_menu_interaction.elapsed() >= std::time::Duration::from_secs(2);
                         
-                        if not_killing && process_count_changed && enough_time_passed {
+                        if not_killing && process_count_changed && enough_time_passed && no_recent_interaction {
                             info!("Process count changed from {} to {}, updating menu...", last_process_count, process_count);
 
                             // Additional validation: ensure all processes in the list are still running
@@ -306,7 +313,18 @@ impl PortKillApp {
                                     TrayMenu::create_menu_with_verbose(&valid_processes, args.show_pid, args.verbose)
                                 }) {
                                     Ok(Ok((new_menu, new_menu_id_to_port))) => {
-                                        // Set the new menu on the tray icon
+                                        // SAFETY FIX: Clear the old menu first and wait for macOS to finish cleanup
+                                        // This prevents a use-after-free crash when macOS tries to unregister
+                                        // key equivalents from menu items that are being deallocated.
+                                        // See: https://github.com/treadiehq/port-kill/issues/30
+                                        let none_menu: Option<Box<dyn tray_icon::menu::ContextMenu>> = None;
+                                        icon.set_menu(none_menu);
+                                        
+                                        // Give macOS time to fully release the old menu resources
+                                        // This delay is critical to prevent the segfault
+                                        std::thread::sleep(std::time::Duration::from_millis(50));
+                                        
+                                        // Now set the new menu
                                         icon.set_menu(Some(Box::new(new_menu)));
                                         
                                         // Store the menu ID to port mapping for event handling
@@ -331,8 +349,8 @@ impl PortKillApp {
                                 last_menu_update = std::time::Instant::now();
                             }
                         } else if process_count_changed {
-                            info!("Process count changed from {} to {} but skipping menu update (killing: {}, time passed: {})",
-                                  last_process_count, process_count, !not_killing, enough_time_passed);
+                            info!("Process count changed from {} to {} but skipping menu update (killing: {}, time passed: {}, no recent interaction: {})",
+                                  last_process_count, process_count, !not_killing, enough_time_passed, no_recent_interaction);
                         }
                     }
                 }
