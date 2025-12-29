@@ -134,7 +134,7 @@
               </span>
               <span v-if="process.cpu_usage > 50" class="text-red-400">🔥</span>
               <span v-else-if="process.cpu_usage > 20" class="text-yellow-400">⚡</span>
-              <span v-else class="text-green-400">✅</span>
+              <CheckCircleIcon v-else class="w-4 h-4 text-green-400" />
             </div>
             <span v-else class="text-sm text-gray-500">-</span>
           </td>
@@ -147,7 +147,7 @@
               </span>
               <span v-if="process.memory_percentage > 5" class="text-red-400">🔥</span>
               <span v-else-if="process.memory_percentage > 2" class="text-yellow-400">⚡</span>
-              <span v-else class="text-green-400">✅</span>
+              <CheckCircleIcon v-else class="w-4 h-4 text-green-400" />
             </div>
             <span v-else class="text-sm text-gray-500">-</span>
           </td>
@@ -210,7 +210,8 @@ import {
   CubeIcon,
   ExclamationTriangleIcon,
   ArchiveBoxXMarkIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  CheckCircleIcon
 } from '@heroicons/vue/24/solid'
 import KillConfirmModal from './KillConfirmModal.vue'
 
