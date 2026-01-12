@@ -24,7 +24,11 @@ impl SmartFilter {
         if let Some(patterns) = ignore_patterns {
             for pattern in patterns {
                 // Convert wildcard pattern to regex
-                let regex_pattern = pattern.replace("*", ".*").replace("?", ".");
+                // First escape all regex metacharacters to treat them as literals
+                let escaped = regex::escape(&pattern);
+                // Then replace our escaped wildcards with regex equivalents
+                // regex::escape() converts * to \* and ? to \?, so we replace those
+                let regex_pattern = escaped.replace(r"\*", ".*").replace(r"\?", ".");
                 let regex = Regex::new(&format!("^{}$", regex_pattern))?;
                 compiled_patterns.push(regex);
             }

@@ -169,10 +169,18 @@ async fn run_windows_tray_mode(args: Args) -> Result<()> {
                 "kill_all" => {
                     info!("Kill All Processes clicked");
                     let ports_to_kill = args.get_ports_to_monitor();
-                    if let Err(e) = kill_all_processes(&ports_to_kill, &args) {
-                        error!("Failed to kill all processes: {}", e);
-                    } else {
-                        println!("✅ All processes killed successfully");
+                    let args_clone = args.clone();
+
+                    // Use spawn_blocking to avoid blocking the async runtime
+                    // This keeps the tray UI responsive during kill operations
+                    let handle = tokio::task::spawn_blocking(move || {
+                        kill_all_processes(&ports_to_kill, &args_clone)
+                    });
+
+                    match handle.await {
+                        Ok(Ok(())) => println!("✅ All processes killed successfully"),
+                        Ok(Err(e)) => error!("Failed to kill all processes: {}", e),
+                        Err(e) => error!("Kill task panicked: {}", e),
                     }
                 }
                 "quit" => {
@@ -189,8 +197,20 @@ async fn run_windows_tray_mode(args: Args) -> Result<()> {
         if last_check.elapsed() >= Duration::from_secs(5) {
             last_check = std::time::Instant::now();
             
-            // Get process information - now properly async within the runtime
-            let (process_count, processes) = get_processes_on_ports(&args.get_ports_to_monitor(), &args);
+            // Get process information using spawn_blocking to avoid blocking the async runtime
+            let ports = args.get_ports_to_monitor();
+            let args_clone = args.clone();
+            let result = tokio::task::spawn_blocking(move || {
+                get_processes_on_ports(&ports, &args_clone)
+            }).await;
+
+            let (process_count, processes) = match result {
+                Ok(data) => data,
+                Err(e) => {
+                    error!("Process scan task panicked: {}", e);
+                    continue;
+                }
+            };
             let status_info = StatusBarInfo::from_process_count(process_count);
             
             // Only update if processes have actually changed

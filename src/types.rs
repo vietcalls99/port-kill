@@ -165,7 +165,7 @@ impl ProcessInfo {
             Some("Python".to_string())
         } else if name_lower.contains("java") || command_lower.contains("java") {
             Some("Java".to_string())
-        } else if name_lower.contains("go") || command_lower.contains("go ") {
+        } else if name_lower == "go" || name_lower == "golang" || command_lower.starts_with("go ") || command_lower.contains(" go ") {
             Some("Go".to_string())
         } else if name_lower.contains("rust") || command_lower.contains("cargo") {
             Some("Rust".to_string())

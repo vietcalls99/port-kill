@@ -42,11 +42,20 @@ fn main() -> Result<()> {
         }
     }
 
-    // Check for updates in background (non-blocking)
-    let current_version = env!("CARGO_PKG_VERSION");
-    let rt = tokio::runtime::Runtime::new()?;
-    if let Ok(Some(update_info)) = rt.block_on(update_check::check_for_updates(current_version)) {
-        update_check::print_update_notification(&update_info);
+    // Determine if this is a quick operation that will exit early
+    // Skip update check for these to avoid 1-5+ second network delays
+    let is_quick_operation = args.list_presets
+        || args.save_preset.is_some()
+        || args.delete_preset.is_some()
+        || args.cache.is_some();
+
+    // Check for updates only for long-running operations
+    if !is_quick_operation {
+        let current_version = env!("CARGO_PKG_VERSION");
+        let rt = tokio::runtime::Runtime::new()?;
+        if let Ok(Some(update_info)) = rt.block_on(update_check::check_for_updates(current_version)) {
+            update_check::print_update_notification(&update_info);
+        }
     }
 
     // Handle preset functionality
@@ -342,10 +351,18 @@ async fn main() -> Result<()> {
         }
     }
 
-    // Check for updates in background (non-blocking)
-    let current_version = env!("CARGO_PKG_VERSION");
-    if let Ok(Some(update_info)) = port_kill::update_check::check_for_updates(current_version).await {
-        port_kill::update_check::print_update_notification(&update_info);
+    // Determine if this is a quick operation that will exit early
+    // Skip update check for these to avoid 1-5+ second network delays
+    let is_quick_operation = args.list_presets
+        || args.save_preset.is_some()
+        || args.delete_preset.is_some();
+
+    // Check for updates only for long-running operations
+    if !is_quick_operation {
+        let current_version = env!("CARGO_PKG_VERSION");
+        if let Ok(Some(update_info)) = port_kill::update_check::check_for_updates(current_version).await {
+            port_kill::update_check::print_update_notification(&update_info);
+        }
     }
 
     // Handle preset functionality
@@ -555,10 +572,18 @@ async fn main() -> Result<()> {
         }
     }
 
-    // Check for updates in background (non-blocking)
-    let current_version = env!("CARGO_PKG_VERSION");
-    if let Ok(Some(update_info)) = port_kill::update_check::check_for_updates(current_version).await {
-        port_kill::update_check::print_update_notification(&update_info);
+    // Determine if this is a quick operation that will exit early
+    // Skip update check for these to avoid 1-5+ second network delays
+    let is_quick_operation = args.list_presets
+        || args.save_preset.is_some()
+        || args.delete_preset.is_some();
+
+    // Check for updates only for long-running operations
+    if !is_quick_operation {
+        let current_version = env!("CARGO_PKG_VERSION");
+        if let Ok(Some(update_info)) = port_kill::update_check::check_for_updates(current_version).await {
+            port_kill::update_check::print_update_notification(&update_info);
+        }
     }
 
     // Handle preset functionality

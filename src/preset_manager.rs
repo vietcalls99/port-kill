@@ -1,6 +1,6 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::Path;
 
@@ -111,6 +111,8 @@ impl PortPreset {
 pub struct PresetManager {
     presets: HashMap<String, PortPreset>,
     config_path: String,
+    /// Track names of default presets to avoid saving them to user config
+    default_preset_names: HashSet<String>,
 }
 
 impl PresetManager {
@@ -124,6 +126,7 @@ impl PresetManager {
         Self {
             presets: HashMap::new(),
             config_path,
+            default_preset_names: HashSet::new(),
         }
     }
 
@@ -146,14 +149,22 @@ impl PresetManager {
         Ok(())
     }
 
-    /// Save presets to file
+    /// Save presets to file (only saves user-defined presets, not defaults)
     pub fn save_presets(&self) -> Result<()> {
         // Create directory if it doesn't exist
         if let Some(parent) = Path::new(&self.config_path).parent() {
             fs::create_dir_all(parent)?;
         }
 
-        let content = serde_json::to_string_pretty(&self.presets)?;
+        // Filter out default presets - only save user-defined ones
+        let user_presets: HashMap<String, PortPreset> = self
+            .presets
+            .iter()
+            .filter(|(name, _)| !self.default_preset_names.contains(*name))
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
+
+        let content = serde_json::to_string_pretty(&user_presets)?;
         fs::write(&self.config_path, content)?;
 
         Ok(())
@@ -161,6 +172,12 @@ impl PresetManager {
 
     /// Load default presets
     fn load_default_presets(&mut self) {
+        // Helper to add a default preset and track its name
+        let mut add_default = |name: &str, preset: PortPreset| {
+            self.default_preset_names.insert(name.to_string());
+            self.presets.insert(name.to_string(), preset);
+        };
+
         // Development preset - common dev ports
         let dev_preset = PortPreset::with_ignores(
             "dev".to_string(),
@@ -175,7 +192,7 @@ impl PresetManager {
             None,
             None,
         );
-        self.presets.insert("dev".to_string(), dev_preset);
+        add_default("dev", dev_preset);
 
         // System preset - system services
         let system_preset = PortPreset::with_smart_filter(
@@ -186,7 +203,7 @@ impl PresetManager {
             ],
             true, // Enable smart filtering
         );
-        self.presets.insert("system".to_string(), system_preset);
+        add_default("system", system_preset);
 
         // Database preset - database services
         let db_preset = PortPreset::new(
@@ -194,7 +211,7 @@ impl PresetManager {
             "Database services (MySQL, PostgreSQL, Redis, MongoDB, etc.)".to_string(),
             vec![3306, 5432, 6379, 27017, 1433, 9200, 9300],
         );
-        self.presets.insert("database".to_string(), db_preset);
+        add_default("database", db_preset);
 
         // Web preset - web servers and proxies
         let web_preset = PortPreset::with_ignores(
@@ -210,7 +227,7 @@ impl PresetManager {
             None,
             None,
         );
-        self.presets.insert("web".to_string(), web_preset);
+        add_default("web", web_preset);
 
         // React preset - React development
         let react_preset = PortPreset::new(
@@ -218,7 +235,7 @@ impl PresetManager {
             "React development servers".to_string(),
             vec![3000, 3001, 3002, 3003, 3004, 3005],
         );
-        self.presets.insert("react".to_string(), react_preset);
+        add_default("react", react_preset);
 
         // Node.js preset - Node.js development
         let node_preset = PortPreset::new(
@@ -226,7 +243,7 @@ impl PresetManager {
             "Node.js development servers".to_string(),
             vec![3000, 5000, 8000, 8080, 9000],
         );
-        self.presets.insert("node".to_string(), node_preset);
+        add_default("node", node_preset);
 
         // Python preset - Python development
         let python_preset = PortPreset::new(
@@ -234,7 +251,7 @@ impl PresetManager {
             "Python development servers (Django, Flask, FastAPI, etc.)".to_string(),
             vec![5000, 8000, 8080, 9000],
         );
-        self.presets.insert("python".to_string(), python_preset);
+        add_default("python", python_preset);
 
         // Full range preset - comprehensive monitoring
         let full_preset = PortPreset::with_smart_filter(
@@ -243,7 +260,7 @@ impl PresetManager {
             (2000..=8000).collect(),
             true, // Enable smart filtering
         );
-        self.presets.insert("full".to_string(), full_preset);
+        add_default("full", full_preset);
 
         // Minimal preset - just the essentials
         let minimal_preset = PortPreset::new(
@@ -251,7 +268,7 @@ impl PresetManager {
             "Essential development ports only".to_string(),
             vec![3000, 8080, 4321],
         );
-        self.presets.insert("minimal".to_string(), minimal_preset);
+        add_default("minimal", minimal_preset);
     }
 
     /// Get a preset by name

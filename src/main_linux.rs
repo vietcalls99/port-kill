@@ -136,7 +136,8 @@ async fn start_tray_mode(args: Args) -> Result<()> {
     });
     menu.append(&quit_item);
     
-    // Set the menu on the indicator
+    // Show all menu items and set the menu on the indicator
+    menu.show_all();
     indicator.borrow_mut().set_menu(&mut menu);
     
     info!("Enhanced tray icon created successfully!");
@@ -151,9 +152,56 @@ async fn start_tray_mode(args: Args) -> Result<()> {
         let (process_count, processes) = 
             get_processes_on_ports(&args_clone.get_ports_to_monitor(), &args_clone);
         
-        // Update tray icon
+        // Update tray icon and menu
         if let Ok(mut ind) = indicator_clone.try_borrow_mut() {
             update_tray_icon(&mut ind, process_count);
+
+            // Rebuild the menu with current processes
+            let mut new_menu = Menu::new();
+
+            // Add status header
+            let status_item = MenuItem::with_label(&format!("Port Status: {} processes", process_count));
+            status_item.set_sensitive(false);
+            new_menu.append(&status_item);
+
+            // Add separator
+            let separator = SeparatorMenuItem::new();
+            new_menu.append(&separator);
+
+            // Add process-specific submenu with current processes
+            let process_menu = create_process_menu_with_verbose(&args_clone, &processes, args_clone.verbose);
+            let process_root = MenuItem::with_label("Processes");
+            process_root.set_submenu(Some(&process_menu));
+            new_menu.append(&process_root);
+
+            // Add another separator
+            let separator2 = SeparatorMenuItem::new();
+            new_menu.append(&separator2);
+
+            // Add action items
+            let kill_all_item = MenuItem::with_label("Kill All Processes");
+            let args_for_kill = args_clone.clone();
+            kill_all_item.connect_activate(move |_| {
+                info!("Kill All Processes clicked");
+                let ports_to_kill = args_for_kill.get_ports_to_monitor();
+                if let Err(e) = kill_all_processes(&ports_to_kill, &args_for_kill) {
+                    error!("Failed to kill all processes: {}", e);
+                }
+            });
+            new_menu.append(&kill_all_item);
+
+            let quit_item = MenuItem::with_label("Quit");
+            quit_item.connect_activate(move |_| {
+                info!("Quit clicked, exiting gracefully...");
+                process::exit(0);
+            });
+            new_menu.append(&quit_item);
+
+            // Show all menu items before setting
+            new_menu.show_all();
+
+            // Update the menu on the indicator
+            ind.set_menu(&mut new_menu);
         }
         
         // Update status display

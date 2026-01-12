@@ -866,10 +866,10 @@ const tabs = [
   { id: 'history', name: 'History' },
   { id: 'stats', name: 'Statistics' },
   { id: 'offenders', name: 'Frequent Offenders' },
-  { id: 'suggestions', name: 'Suggestions' },
-  { id: 'root-cause', name: 'Smart Root Cause' },
+  // { id: 'suggestions', name: 'Suggestions' },
+  // { id: 'root-cause', name: 'Smart Root Cause' },
   { id: 'port-guard', name: 'Port Guard' },
-  { id: 'security-audit', name: 'Security Audit' }
+  // { id: 'security-audit', name: 'Security Audit' }
 ]
 
 // Auto-refresh interval

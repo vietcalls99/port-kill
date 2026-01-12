@@ -151,8 +151,9 @@ pub async fn restore_from_backup(backup_path: &Path) -> Result<usize, std::io::E
         }
     }
 
-    // Clean up backup directory after successful restore
-    if restored_count > 0 {
+    // Clean up backup directory only after ALL files are successfully restored
+    // If any files failed to restore, keep the backup so users can retry
+    if restored_count > 0 && restored_count == manifest.entries.len() {
         let _ = fs::remove_dir_all(backup_path);
     }
 

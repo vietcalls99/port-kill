@@ -80,7 +80,7 @@ impl ServiceDetector {
     pub fn start_service(&self, service: &DiscoveredService) -> Result<u32> {
         log::info!("Starting service: {}", service.name);
 
-        let child = match &service.service_type {
+        let mut child = match &service.service_type {
             ServiceType::NpmScript {
                 script_name,
                 package_json_path,
@@ -105,10 +105,13 @@ impl ServiceDetector {
         }?;
         
         let pid = child.id();
-        
-        // Detach the child process to prevent zombie accumulation
-        std::mem::forget(child);
-        
+
+        // Spawn a background thread to reap the child when it exits,
+        // preventing zombie process accumulation
+        std::thread::spawn(move || {
+            let _ = child.wait();
+        });
+
         Ok(pid)
     }
 
